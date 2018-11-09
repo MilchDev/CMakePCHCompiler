@@ -1,0 +1,1 @@
+This folder contains test, runnable with python3

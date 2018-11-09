@@ -1,0 +1,1 @@
+#define RET_VALUE 1
