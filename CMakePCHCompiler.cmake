@@ -115,7 +115,7 @@ function(target_precompiled_header) # target [...] header
 				#which just includes the header, dependent on this the decision is made if a recompilation of the pch is needed.
 				#Note: This only works for Ninja/Makefile generators
 				#This is only needed for GCC variants, MSVC uses 'smarter' logic with flags
-				set(PCH_INCLUDE ${header})
+				set(PCH_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/${header})
 				configure_file(${DIR_OF_CMAKEPCHCOMPILER}/pch_include.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp @ONLY)
 				set_source_files_properties(${header} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}_include.cpp.obj)
 				add_library(${pch_target} OBJECT ${header} ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp)
