@@ -21,11 +21,18 @@
 #
 # project(project_name C CPCH)     # plain C project
 # project(project_name CXX CXXPCH) # C++ project
+# 
+# Important: Use this function AFTER all sources have been added to the 'target', because
+# it will add OBJECT_DEPENDS to all source files of this target!
 
 # Copyright (c) CMakePCHCompiler Authors. All rights reserved.
 # This code is licensed under the MIT License, see LICENSE.
 
 include(CMakeParseArguments)
+
+#This is to reference files in the same directory as CMakePCHCompiler.cmake
+#If CMAKE_CURRENT_LIST_DIR is used inside the function, it will expand to the directory where the caller cmakefile resides!
+set(DIR_OF_CMAKEPCHCOMPILER ${CMAKE_CURRENT_LIST_DIR})  
 
 function(target_precompiled_header) # target [...] header
                                     # [REUSE reuse_target] [TYPE type]
@@ -59,12 +66,12 @@ function(target_precompiled_header) # target [...] header
 		if(ARGS_REUSE)
 			set(pch_target ${ARGS_REUSE}.pch)
 			set(target_dir
-				${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${pch_target}.dir
+				${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${pch_target}.dir/${CMAKE_CFG_INTDIR}
 				)
 		else()
 			set(pch_target ${target}.pch)
 			set(target_dir
-				${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${pch_target}.dir
+				${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${pch_target}.dir/${CMAKE_CFG_INTDIR}
 				)
 		endif()
 		if(MSVC)
@@ -102,11 +109,46 @@ function(target_precompiled_header) # target [...] header
 					LANGUAGE ${lang}PCH
 					COMPILE_FLAGS ${flags}
 					)
-				add_library(${pch_target} OBJECT ${header})
+				
+				#CMake does not expose header dependency checking to the generator,
+				#so in order to update the PCH if a header on level deep changes (or greater), we rely on a generated cpp file
+				#which just includes the header, dependent on this the decision is made if a recompilation of the pch is needed.
+				#Note: This only works for Ninja/Makefile generators
+				#This is only needed for GCC variants, MSVC uses 'smarter' logic with flags
+				set(PCH_INCLUDE ${header})
+				configure_file(${DIR_OF_CMAKEPCHCOMPILER}/pch_include.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp @ONLY)
+				set_source_files_properties(${header} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}_include.cpp.obj)
+				add_library(${pch_target} OBJECT ${header} ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp)
+				unset(PCH_INCLUDE)
 			endif()
+
+			#Add phony target to enforce building of pch before building of clients
+			#This is needed, because otherwise it is just seen as a linktime-dependency and compilation can start 
+			#before the pch was actually generated, resulting in errors
+			add_custom_target(${pch_target}_phony DEPENDS ${pch_target})
+
 		endif()
 
-		add_dependencies(${target} ${pch_target})
+		#For Ninja/Makfile generators, add an OBJECT_DEPENDS for each source file of the given target
+		#This implies that no more sourcefiles are added to the target! 
+		#This is needed in order to force recompilation, and not just relinking!
+		if(NOT CMAKE_CONFIGURATION_TYPES)
+			get_target_property(target_sources ${target} SOURCES)
+			if(MSVC)
+				#MSVC works different with the OBJECT_DEPENDS and one can directly rely on the header that will be generated
+				#Depending on the .pch directly does not work as expected for some reason.
+				set_source_files_properties(${target_sources} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}.obj)
+			else()
+				set_source_files_properties(${target_sources} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}${CMAKE_CXXPCH_OUTPUT_EXTENSION})
+			endif()
+			
+		endif()
+
+		if(ARGS_REUSE)
+			add_dependencies(${target} ${ARGS_REUSE} ${pch_target}_phony)
+		else()
+			add_dependencies(${target} ${pch_target}_phony)
+		endif()
 
 		if(MSVC)
 			# /Yu - use given include as precompiled header
@@ -118,7 +160,9 @@ function(target_precompiled_header) # target [...] header
 				)
 			target_sources(${target} PRIVATE $<TARGET_OBJECTS:${pch_target}>)
 		else()
-			set(exclude -include ${target_dir}/${header})
+			if(ARGS_REUSE)
+				set(exclude -include ${target_dir}/${header})
+			endif()
 		endif()
 		target_compile_options(${target} PRIVATE ${exclude})
 
