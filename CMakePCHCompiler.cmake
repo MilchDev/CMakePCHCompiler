@@ -109,7 +109,7 @@ function(target_precompiled_header) # target [...] header
 					LANGUAGE ${lang}PCH
 					COMPILE_FLAGS ${flags}
 					)
-				
+					
 				#CMake does not expose header dependency checking to the generator,
 				#so in order to update the PCH if a header on level deep changes (or greater), we rely on a generated cpp file
 				#which just includes the header, dependent on this the decision is made if a recompilation of the pch is needed.
@@ -117,7 +117,7 @@ function(target_precompiled_header) # target [...] header
 				#This is only needed for GCC variants, MSVC uses 'smarter' logic with flags
 				set(PCH_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/${header})
 				configure_file(${DIR_OF_CMAKEPCHCOMPILER}/pch_include.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp @ONLY)
-				set_source_files_properties(${header} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}_include.cpp.obj)
+				set_source_files_properties(${header} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}_include.cpp${CMAKE_CXX_OUTPUT_EXTENSION})
 				add_library(${pch_target} OBJECT ${header} ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp)
 				unset(PCH_INCLUDE)
 			endif()
