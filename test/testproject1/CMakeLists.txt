@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.12)
 
 if(NOT ORIGINAL_SOURCE_DIR)
   set(ORIGINAL_SOURCE_DIR ${CMAKE_SOURCE_DIR})

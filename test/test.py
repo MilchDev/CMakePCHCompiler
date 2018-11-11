@@ -33,14 +33,12 @@ def setupCMake(sProject,sGenerator,sFlags):
   os.chdir(sCMakeDir)
   sCommand = "cmake -G \"%s\" %s -DORIGINAL_SOURCE_DIR=\"%s\" \"%s\"" % (sGenerator,sFlags,sOriginalProjectAbs,sProjectDir)
   print("setupCMake command: %s" % sCommand)
-  aCompleteProcess = subprocess.run(sCommand,check=True)
+  aCompleteProcess = subprocess.run(sCommand,check=True,shell=True)
   return (sCMakeDir,sProjectDir)
 
 def buildCMake(sCMakeDir):
-  sCommand = "cmake --build \"%s\"" % (sCMakeDir)
-  print("buildCMake command: %s" % sCommand)
-  aCompleteProcess = subprocess.run(sCommand)
-  #print(aCompleteProcess.stdout)
+  sCommand = "cmake --build \"%s\" -j 1" % (sCMakeDir)
+  aCompleteProcess = subprocess.run(sCommand,shell=True)
   return aCompleteProcess.returncode
 
 #Preserves the initial directory between tests
