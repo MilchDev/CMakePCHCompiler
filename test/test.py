@@ -52,11 +52,9 @@ class BaseTest(unittest.TestCase):
   def tearDown(self):
     os.chdir(self._sOriginalDir)
 
-  def project1(self,bUsePCH,sGenerator):
+  def project1(self,bUsePCH,sGenerator,sFlags = ""):
     if bUsePCH:
-      sFlags = "-DUSE_PRECOMPILED=1"
-    else:
-      sFlags = ""
+      sFlags = sFlags + " -DUSE_PRECOMPILED=1"
 
     (sCMakeDir,sProjectDir) = setupCMake("testproject1",sGenerator,sFlags)
     self.assertEqual(buildCMake(sCMakeDir),0)
@@ -92,6 +90,14 @@ class TestMSVC(BaseTest):
   def test_ninja(self):
       super().project1(False,"Ninja")
 
+  @unittest.skipIf(bHasNinja == False,"Ninja not in present in path")
+  def test_ninja_pch_dbg(self):
+      super().project1(True,"Ninja","-DCMAKE_BUILD_TYPE=Debug")
+
+  @unittest.skipIf(bHasNinja == False,"Ninja not in present in path")
+  def test_ninja_pch_relwithdeb(self):
+      super().project1(True,"Ninja","-DCMAKE_BUILD_TYPE=RelWithDebInfo")
+
   def test_sln(self):
       super().project1(False,"Visual Studio 15 2017")
 
@@ -108,6 +114,17 @@ class TestGCC(BaseTest):
   @unittest.skipIf(bHasNinja == False,"Ninja not in present in path")
   def test_ninja(self):
       super().project1(False,"Ninja")
+
+  @unittest.skipIf(bHasNinja == False,"Ninja not in present in path")
+  def test_ninja_pch_dbg(self):
+      super().project1(True,"Ninja","-DCMAKE_BUILD_TYPE=Debug")
+
+  @unittest.skipIf(bHasNinja == False,"Ninja not in present in path")
+  def test_ninja_pch_relwithdeb(self):
+      super().project1(True,"Ninja","-DCMAKE_BUILD_TYPE=RelWithDebInfo")
+
+  def test_ninja_pch_mingw(self):
+      super().project1(True,"CodeBlocks - MinGW Makefiles","")
 
 if __name__ == '__main__':
     print("Env:")

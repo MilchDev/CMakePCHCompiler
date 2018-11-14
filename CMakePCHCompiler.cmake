@@ -117,8 +117,11 @@ function(target_precompiled_header) # target [...] header
 				#This is only needed for GCC variants, MSVC uses 'smarter' logic with flags
 				set(PCH_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/${header})
 				configure_file(${DIR_OF_CMAKEPCHCOMPILER}/pch_include.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp @ONLY)
-				set_source_files_properties(${header} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}_include.cpp${CMAKE_CXX_OUTPUT_EXTENSION})
 				add_library(${pch_target} OBJECT ${header} ${CMAKE_CURRENT_BINARY_DIR}/${header}_include.cpp)
+
+				#make requires absoulte path for OBJECT_DEPENDS, otherwise it does not work
+				get_filename_component(ABSOLUTE_OBJECT_FILE_PATH "${target_dir}/${header}_include.cpp${CMAKE_CXX_OUTPUT_EXTENSION}" ABSOLUTE)
+				set_source_files_properties(${header} PROPERTIES OBJECT_DEPENDS ${ABSOLUTE_OBJECT_FILE_PATH})
 				unset(PCH_INCLUDE)
 			endif()
 
@@ -142,7 +145,9 @@ function(target_precompiled_header) # target [...] header
 				#Depending on the .pch directly does not work as expected for some reason.
 				set_source_files_properties(${target_sources} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}.obj)
 			else()
-				set_source_files_properties(${target_sources} PROPERTIES OBJECT_DEPENDS ${target_dir}/${header}${CMAKE_CXXPCH_OUTPUT_EXTENSION})
+				#make requires absoulte path for OBJECT_DEPENDS, otherwise it does not work
+				get_filename_component(ABSOLUTE_OBJECT_FILE_PATH "${target_dir}/${header}_include.cpp${CMAKE_CXX_OUTPUT_EXTENSION}" ABSOLUTE)
+				set_source_files_properties(${target_sources} PROPERTIES OBJECT_DEPENDS ${ABSOLUTE_OBJECT_FILE_PATH})
 			endif()
 			
 		endif()
