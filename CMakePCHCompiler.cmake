@@ -122,6 +122,9 @@ function(target_precompiled_header) # target [...] header
 				unset(PCH_INCLUDE)
 			endif()
 
+			#Add include dirs from originating target to pch_target, so 3rdpartyheaders can be included in .pch
+			target_include_directories(${pch_target} PRIVATE $<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>)
+
 			#Add phony target to enforce building of pch before building of clients
 			#This is needed, because otherwise it is just seen as a linktime-dependency and compilation can start 
 			#before the pch was actually generated, resulting in errors
